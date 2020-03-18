@@ -3,8 +3,7 @@ services:
   api:
     build: api/
     container_name: api
-    #    command: flask run --host=0:0:0:0
-    #    command: python ./wsgi.py
+    restart: on-failure:3
     ports:
       - 5000:5000
     depends_on:
@@ -14,6 +13,7 @@ services:
     image: erangaeb/senznginx:0.4
     build: nginx/
     container_name: nginx
+    restart: on-failure:3
     ports:
       - 80:80
     links:
@@ -21,24 +21,15 @@ services:
 
   db:
     image: postgres:12-alpine
-    #    command: docker run --rm -p -p 127.0.0.1:5432:5432 -e POSTGRES_PASSWORD="1234" --name pg postgres:alpine
+    container_name: database
+    restart: on-failure:3
     environment:
-#      POSTGRES_DB: bills
       POSTGRES_USER: uhjrbye
-#      POSTGRES_USER: admin
       POSTGRES_PASSWORD: fZ5gd1PqRaBJdx9MUUW0H3KaswyE5_Oi
-#      POSTGRES_PASSWORD: 12345678
     volumes:
       - postgres_data:/var/lib/postgresql/data/
 
+
+
 volumes:
   postgres_data:
-#  db:
-#    image: postgres
-#    restart: always
-#    environment:
-#      POSTGRES_DB: bills
-#      POSTGRES_USER: admin
-#      POSTGRES_PASSWORD: 12345678
-#    ports:
-#      - 5432:5432

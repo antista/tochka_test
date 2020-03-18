@@ -25,7 +25,8 @@ class Response:
     addition: dict
     description: dict
 
-    def __init__(self, result: bool, description: Optional[dict] = None, addition: Optional[dict] = None):
+    def __init__(self, result: bool, description: Optional[dict] = None,
+                 addition: Optional[dict] = None):
         self.result = result
         self.addition = addition if addition else {}
         self.description = description if description else {}
@@ -46,21 +47,22 @@ class Account(db.Model):
     holds = db.Column(db.Float, nullable=False)
     status = db.Column(db.Boolean, nullable=False)
 
-    # last_subtract = db.Column(db.DateTime)
-
     @staticmethod
-    def create(name: str, current_balance: Union[int, float], holds: Union[int, float], status: bool,
-               account_id: Optional[str] = None) -> OperationResult(Type[bool], Optional[dict]):
+    def create(*, name: str, current_balance: Union[int, float], holds: Union[int, float],
+               status: bool, account_id: Optional[str] = None) \
+            -> OperationResult(Type[bool], Optional[dict]):
         """
         Create new Account and return it's account_id.
         If account_id is not defined, then account_id = uuid4.
         """
         if current_balance < 0 or holds < 0:
-            return OperationResult(result=False, description={'error': strings.WRONG_DATA_ERROR})
+            return OperationResult(result=False,
+                                   description={'error': strings.WRONG_DATA_ERROR})
 
         if not account_id:
             account_id = str(uuid4())
-        db.session.add(Account(id=account_id, name=name, current_balance=current_balance, holds=holds, status=status))
+        db.session.add(Account(id=account_id, name=name, current_balance=current_balance,
+                               holds=holds, status=status))
         db.session.commit()
         return OperationResult(result=True, description={'uuid': account_id})
 
@@ -70,16 +72,19 @@ class Account(db.Model):
         return Account.query.get(account_id)
 
     @staticmethod
-    def subtract(account_id: str, substraction: Union[int, float]) -> OperationResult(Type[bool], Optional[dict]):
+    def subtract(account_id: str, substraction: Union[int, float]) \
+            -> OperationResult(Type[bool], Optional[dict]):
         """
         Add substraction to holds if (holds + substracrion) <= current_balance.
         """
         account = Account.get(account_id)
         if not account:
-            return OperationResult(result=False, description={'error': strings.ACCOUNT_DOES_NOT_EXIST_ERROR})
+            return OperationResult(result=False,
+                                   description={'error': strings.ACCOUNT_DOES_NOT_EXIST_ERROR})
 
         if not account.status or account.current_balance - account.holds - substraction < 0:
-            return OperationResult(result=False, description={'error': strings.OPERATION_NOT_POSSIBLE_ERROR})
+            return OperationResult(result=False,
+                                   description={'error': strings.OPERATION_NOT_POSSIBLE_ERROR})
 
         account.holds += round(substraction, 2)
         db.session.commit()
@@ -92,10 +97,12 @@ class Account(db.Model):
         """
         account = Account.get(account_id)
         if not account:
-            return OperationResult(result=False, description={'error': strings.ACCOUNT_DOES_NOT_EXIST_ERROR})
+            return OperationResult(result=False,
+                                   description={'error': strings.ACCOUNT_DOES_NOT_EXIST_ERROR})
 
         if not account.status:
-            return OperationResult(result=False, description={'error': strings.OPERATION_NOT_POSSIBLE_ERROR})
+            return OperationResult(result=False,
+                                   description={'error': strings.OPERATION_NOT_POSSIBLE_ERROR})
 
         account.current_balance += round(sum, 2)
         db.session.commit()
@@ -108,7 +115,8 @@ class Account(db.Model):
         """
         account = Account.get(account_id)
         if not account:
-            return OperationResult(result=False, description={'error': strings.ACCOUNT_DOES_NOT_EXIST_ERROR})
+            return OperationResult(result=False,
+                                   description={'error': strings.ACCOUNT_DOES_NOT_EXIST_ERROR})
 
         return OperationResult(result=True, description={
             'current_balance': round(account.current_balance, 2),
@@ -116,11 +124,19 @@ class Account(db.Model):
             'status': account.status
         })
 
-    # @staticmethod
-    # def subtract_holds(account_id):
-    #     account = Account.get(account_id)
-    #     if not account or not account.status or account.current_balance < account.holds:
-    #         return
-    #     account.current_balance -= account.holds
-    #     account.holds = 0
-    #     db.session.commit()
+    def __subtract_holds(self):
+        """
+        Subtract account's holds.
+        """
+        if self.status and self.current_balance >= self.holds:
+            self.current_balance -= self.holds
+            self.holds = 0
+            db.session.commit()
+
+    @staticmethod
+    def subtract_all_holds():
+        """
+        Subtract holds of all accounts.
+        """
+        for account in Account.query.all():
+            account.subtract_holds()
