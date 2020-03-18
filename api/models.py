@@ -126,7 +126,7 @@ class Account(db.Model):
 
     def __subtract_holds(self):
         """
-        Subtract account's holds.
+        Subtract account`s holds from it`s current_balance.
         """
         if self.status and self.current_balance >= self.holds:
             self.current_balance -= self.holds
